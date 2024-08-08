@@ -20,7 +20,7 @@ export class AuthService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     // private readonly usersService: UsersService,
-    private readonly jwtService: JwtService,
+    private jwtService: JwtService,
   ) {}
 
   async signUp(signUpDto: SignUpDto): Promise<{ token: string }> {

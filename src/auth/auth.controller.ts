@@ -2,15 +2,16 @@ import {
   Controller,
   Post,
   Body,
-  Get,
+  Req,
   // HttpCode,
   // HttpStatus,
   // UseGuards,
   // Req,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { SignUpDto } from './dto/signup-auth.dto';
+// import { SignUpDto } from './dto/signup-auth.dto';
 import { LoginDto } from './dto/login-auth.dto';
+import { Request } from 'express';
 // import { JwtAuthGuard } from './jwt.auth.guard';
 // import { Request } from 'express';
 
@@ -18,24 +19,18 @@ import { LoginDto } from './dto/login-auth.dto';
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @Get('')
-  getHello() {
-    return 'Hello world ';
+  @Post('/signup')
+  async signUp(@Req() req: Request) {
+    try {
+      console.log(req);
+      // return this.authService.signUp(signUpDto);
+    } catch (error) {
+      console.log(error);
+    }
   }
 
-  // @Post('/signup')
-  // async signUp(@Body() signUpDto: SignUpDto) {
-  //   console.log('signuo accessed');
-  //   return 'Work na';
-  // return await this.authService.signUp(signUpDto);
-  // return {
-  //   message: 'Signup successful',y
-  //   token,
-  // };
-  // }
-
   @Post('login')
-  async login(@Body() loginDto: LoginDto): Promise<{ token: string }> {
+  async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }
 

@@ -41,7 +41,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "mongodb": "^6.8.0",
-    "mongoose": "^8.5.1",
+    "mongoose": "^8.5.2",
     "nestjs-rate-limiter": "^3.1.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",

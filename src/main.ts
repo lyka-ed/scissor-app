@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+// import { ValidationPipe } from '@nestjs/common';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -14,6 +14,7 @@ async function bootstrap() {
   //     transform: true,
   //   }),
   // );
+
   await app.listen(5000, async () => {
     console.log('Sever is running on port 5000');
   });
