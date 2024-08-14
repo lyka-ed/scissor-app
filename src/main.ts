@@ -1,22 +1,22 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-// import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  // app.useGlobalPipes(
-  //   new ValidationPipe({
-  //     whitelist: true,
-  //     forbidNonWhitelisted: true,
-  //     transform: true,
-  //   }),
-  // );
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
-  await app.listen(5000, async () => {
-    console.log('Sever is running on port 5000');
+  await app.listen(3000, async () => {
+    console.log('Sever is running on port 3000');
   });
 }
 bootstrap();

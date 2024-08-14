@@ -9,24 +9,18 @@ import {
   // Req,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-// import { SignUpDto } from './dto/signup-auth.dto';
+import { SignUpDto } from './dto/signup-auth.dto';
 import { LoginDto } from './dto/login-auth.dto';
-import { Request } from 'express';
+import { RefreshTokenDto } from './dto/refreshToken.dto';
 // import { JwtAuthGuard } from './jwt.auth.guard';
-// import { Request } from 'express';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @Post('/signup')
-  async signUp(@Req() req: Request) {
-    try {
-      console.log(req);
-      // return this.authService.signUp(signUpDto);
-    } catch (error) {
-      console.log(error);
-    }
+  @Post('signup')
+  async signUp(@Body() signupdto: SignUpDto) {
+    return this.authService.signUp(signupdto);
   }
 
   @Post('login')
@@ -34,13 +28,8 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
-  // @UseGuards(JwtAuthGuard)
-  // @Post('validate')
-  // async validateUser(@Req() req: Request) {
-  //   const user = await this.authService.validateUser(req.user['id']);
-  //   return {
-  //     message: 'User validated',
-  //     user,
-  //   };
-  // }
+  @Post('refresh')
+  async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
+    return this.authService.refreshToken(refreshTokenDto.refreshToken);
+  }
 }

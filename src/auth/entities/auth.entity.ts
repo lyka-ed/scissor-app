@@ -10,7 +10,7 @@ export class Auth {
   @Prop({ required: true })
   firstName: string;
 
-  @Prop({ required: true })
+  @Prop({ crequired: [true, 'Duplicate email entered'] })
   lastName: string;
 
   @Prop({ requried: true, unique: true })
