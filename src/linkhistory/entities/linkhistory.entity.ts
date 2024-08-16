@@ -1,18 +1,21 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 
-export type QRCodeDocument = HydratedDocument<QRCode>;
+export type LinkHistoryDocument = HydratedDocument<LinkHistory>;
 
 @Schema({ timestamps: true })
-export class QRCode {
+export class LinkHistory {
   @Prop({ required: true })
   originalUrl: string;
 
   @Prop({ required: true })
-  qrCodeBase64: string;
+  shortUrl: string;
+
+  @Prop({ required: true })
+  userId: string;
 
   @Prop({ default: Date.now })
   createdAt: Date;
 }
 
-export const QRCodeSchema = SchemaFactory.createForClass(QRCode);
+export const LinkHistorySchema = SchemaFactory.createForClass(LinkHistory);

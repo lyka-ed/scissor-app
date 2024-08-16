@@ -12,6 +12,7 @@ import { AuthModule } from './auth/auth.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { QrcodeModule } from './qrcode/qrcode.module';
 // import { APP_GUARD } from '@nestjs/core';
+import { LinkhistoryModule } from './linkhistory/linkhistory.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { QrcodeModule } from './qrcode/qrcode.module';
     AuthModule,
     AnalyticsModule,
     QrcodeModule,
+    LinkhistoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

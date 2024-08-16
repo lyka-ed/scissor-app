@@ -1,22 +1,11 @@
-import {
-  IsString,
-  IsUrl,
-  IsOptional,
-  Length,
-  IsNotEmpty,
-} from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateUrlDto {
-  @IsUrl()
   @IsNotEmpty()
-  public longUrl: string;
-
   @IsString()
-  @IsOptional()
-  @Length(1, 50)
-  public customUrl: string;
+  destination: string;
 
-  @IsString()
   @IsOptional()
-  public qrcode: string;
+  @IsString()
+  customAlias?: string;
 }

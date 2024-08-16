@@ -2,78 +2,97 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  Inject,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Url, UrlDocument } from './entities/url.entity';
-import { CreateUrlDto } from './dto/create-url.dto';
-import { QrcodeService } from '../qrcode/qrcode.service';
 import { Model } from 'mongoose';
-import { Cache } from 'cache-manager';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import * as crypto from 'crypto';
+import { nanoid } from 'nanoid';
+import { CreateUrlDto } from './dto/create-url.dto';
+import { GetShortUrlDto } from './dto/getshorturl.dto.ts';
+import { GetLinkHistoryDto } from '../linkhistory/dto/getlinkhistory.dto.ts';
+import { Url } from './entities/url.entity';
+import { LinkHistory } from '../linkhistory/entities/linkhistory.entity';
+import { Analytics } from '../analytics/entities/analytics.entity';
 
 @Injectable()
 export class UrlsService {
   constructor(
-    @InjectModel(Url.name) private readonly urlModel: Model<UrlDocument>,
-    private readonly qrcodeService: QrcodeService,
-    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    @InjectModel(Url.name) private readonly urlModel: Model<Url>,
+    @InjectModel(LinkHistory.name)
+    private readonly linkHistoryModel: Model<LinkHistory>,
+    @InjectModel(Analytics.name)
+    private readonly analyticsModel: Model<Analytics>,
   ) {}
 
-  private generateShortUrl(): string {
-    return crypto.randomBytes(6).toString('hex');
-  }
+  async createShortUrl(dto: CreateUrlDto, auth0Id: string): Promise<Url> {
+    try {
+      const { destination, customAlias } = dto;
 
-  async createUrl(createUrlDto: CreateUrlDto, userId: string): Promise<Url> {
-    const { longUrl, customUrl } = createUrlDto;
-    const shortUrl = customUrl || this.generateShortUrl();
+      if (!destination) {
+        throw new BadRequestException('Destination is required');
+      }
 
-    const existingUrl = await this.urlModel.findOne({ shortUrl }).exec();
-    if (existingUrl) {
-      throw new BadRequestException('Custom URL already exists');
+      if (customAlias && (await this.urlModel.findOne({ customAlias }))) {
+        throw new BadRequestException('Custom URL already in use');
+      }
+
+      const shortId = customAlias || nanoid(4);
+      const newUrl = new this.urlModel({
+        shortId,
+        destination,
+        auth0Id,
+        clicks: 0,
+        customAlias: customAlias?.trim() || undefined,
+        createdAt: new Date(),
+      });
+
+      return await newUrl.save();
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to create short URL');
     }
-
-    const createdUrl = new this.urlModel({ longUrl, shortUrl, userId });
-    await createdUrl.save();
-    await this.cacheManager.set(shortUrl, longUrl);
-
-    return createdUrl;
   }
 
-  async findUrlByShortUrl(shortUrl: string): Promise<Url> {
-    const cachedUrl = await this.cacheManager.get<string>(shortUrl);
-    if (cachedUrl) {
-      return this.urlModel.findOne({ shortUrl }).exec();
+  async getShortUrlByShortId(dto: GetShortUrlDto): Promise<Url> {
+    try {
+      const { shortId } = dto;
+      const shortUrl = await this.urlModel.findOne({
+        $or: [{ shortId }, { customAlias: shortId }],
+      });
+
+      if (!shortUrl) {
+        throw new NotFoundException('URL not found');
+      }
+
+      shortUrl.clicks += 1;
+      await shortUrl.save();
+      return shortUrl;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to retrieve short URL');
     }
+  }
 
-    const url = await this.urlModel.findOne({ shortUrl }).exec();
-    if (!url) {
-      throw new NotFoundException(`URL with shortUrl ${shortUrl} not found`);
+  async getLinkHistoryByUserId(dto: GetLinkHistoryDto): Promise<LinkHistory[]> {
+    try {
+      return this.linkHistoryModel.find({ userId: dto.userId }).lean();
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to retrieve link history');
     }
-
-    await this.cacheManager.set(shortUrl, url.longUrl);
-    return url;
   }
 
-  async getOriginalUrl(shortUrl: string): Promise<string> {
-    const cachedUrl = await this.cacheManager.get<string>(shortUrl);
-    if (cachedUrl) {
-      return cachedUrl;
+  async clearLinkHistory(auth0Id: string): Promise<void> {
+    try {
+      const userLinks = await this.urlModel.find({ auth0Id }).lean();
+      const shortIds = userLinks.map((url) => url._id);
+      await this.analyticsModel.deleteMany({ shortId: { $in: shortIds } });
+      await this.urlModel.deleteMany({ auth0Id });
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to clear link history');
     }
-
-    const url = await this.findUrlByShortUrl(shortUrl);
-    return url.longUrl;
-  }
-
-  async updateClickCount(shortUrl: string): Promise<void> {
-    const url = await this.findUrlByShortUrl(shortUrl);
-    await this.urlModel
-      .updateOne({ shortUrl }, { $inc: { clickCount: 1 } })
-      .exec();
-  }
-
-  async generateQRCode(shortUrl: string): Promise<string> {
-    return this.qrcodeService.generateQrcode(shortUrl);
   }
 }

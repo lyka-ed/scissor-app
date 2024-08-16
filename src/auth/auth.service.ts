@@ -4,9 +4,9 @@ import {
   UnauthorizedException,
   Logger,
 } from '@nestjs/common';
-import { User, UserDocument } from '../users/entities/user.entity';
+import { User } from '../users/entities/user.entity';
+import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import mongoose, { Model } from 'mongoose';
 import { SignUpDto } from './dto/signup-auth.dto';
 import { LoginDto } from './dto/login-auth.dto';
 import { JwtService } from '@nestjs/jwt';
@@ -72,7 +72,7 @@ export class AuthService {
 
   // Refresh token
   async refreshToken(refreshToken: string) {
-    const token = await this.RefreshTokenModel.findOneAndDelete({
+    const token = await this.RefreshTokenModel.findOne({
       token: refreshToken,
       expiryDate: { $gte: new Date() },
     });
@@ -97,11 +97,15 @@ export class AuthService {
   }
 
   // Store Refresh Token
-  async storeRefreshToken(token: string, userId) {
+  async storeRefreshToken(token: string, userId: string) {
     // Calculate expiry date 3 days from now
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + 3);
 
-    await this.RefreshTokenModel.create({ token, userId, expiryDate });
+    await this.RefreshTokenModel.updateOne(
+      { userId },
+      { $set: { expiryDate, token } },
+      { upsert: true },
+    );
   }
 }

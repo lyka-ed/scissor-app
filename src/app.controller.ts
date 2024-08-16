@@ -8,7 +8,7 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  someProtectedRoute(@Req() req){
-    return  {message: "Accessed Resource" , userId: req.userId};
+  someProtectedRoute(@Req() req) {
+    return { message: 'Accessed Resource', userId: req.userId };
   }
 }

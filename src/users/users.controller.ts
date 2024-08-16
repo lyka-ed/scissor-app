@@ -15,7 +15,6 @@ import {
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { JwtAuthGuard } from '../auth/jwt.auth.guard';
 
 @Controller('users')
 export class UsersController {
@@ -42,7 +41,7 @@ export class UsersController {
   // }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards()
   async getUserById(@Param('id') id: string) {
     try {
       this.logger.debug(`Request to get user with ID: ${id}`);
@@ -58,7 +57,7 @@ export class UsersController {
   }
 
   @Put(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards()
   async updateUser(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
