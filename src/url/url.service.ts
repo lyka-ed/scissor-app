@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -24,33 +25,35 @@ export class UrlsService {
     private readonly analyticsModel: Model<Analytics>,
   ) {}
 
-  async createShortUrl(dto: CreateUrlDto, auth0Id: string): Promise<Url> {
+  async createShortUrl(dto: CreateUrlDto, userId: string): Promise<Url> {
+    const { destination, customAlias } = dto;
+
+    if (!destination) {
+      throw new BadRequestException('Destination is required');
+    }
+
+    if (customAlias && (await this.urlModel.findOne({ customAlias }))) {
+      throw new BadRequestException('Custom URL already in use');
+    }
     try {
-      const { destination, customAlias } = dto;
-
-      if (!destination) {
-        throw new BadRequestException('Destination is required');
-      }
-
-      if (customAlias && (await this.urlModel.findOne({ customAlias }))) {
-        throw new BadRequestException('Custom URL already in use');
-      }
-
       const shortId = customAlias || nanoid(4);
-      const newUrl = new this.urlModel({
+      const newUrl = await this.urlModel.create({
         shortId,
         destination,
-        auth0Id,
         clicks: 0,
+        userId,
         customAlias: customAlias?.trim() || undefined,
         createdAt: new Date(),
       });
 
-      return await newUrl.save();
+      console.log(newUrl);
+      return newUrl;
     } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
+      if (error.code === 11000) {
+        console.log(error);
+        throw new ConflictException('Url with the same alias already exists');
       }
+      console.log(error);
       throw new InternalServerErrorException('Failed to create short URL');
     }
   }
@@ -85,12 +88,12 @@ export class UrlsService {
     }
   }
 
-  async clearLinkHistory(auth0Id: string): Promise<void> {
+  async clearLinkHistory(userId: string): Promise<void> {
     try {
-      const userLinks = await this.urlModel.find({ auth0Id }).lean();
+      const userLinks = await this.urlModel.find({ userId }).lean();
       const shortIds = userLinks.map((url) => url._id);
       await this.analyticsModel.deleteMany({ shortId: { $in: shortIds } });
-      await this.urlModel.deleteMany({ auth0Id });
+      await this.urlModel.deleteMany({ userId });
     } catch (error) {
       throw new InternalServerErrorException('Failed to clear link history');
     }

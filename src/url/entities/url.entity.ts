@@ -22,7 +22,7 @@ export class Url {
   clicks: number;
 
   @Prop({ type: String, required: true })
-  auth0Id: string;
+  userId: string;
 
   @Prop({
     type: String,

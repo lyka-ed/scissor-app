@@ -8,7 +8,6 @@ import {
   Param,
   Req,
   UseGuards,
-  BadRequestException,
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -30,14 +29,35 @@ export class UrlsController {
     @Body() createUrlDto: CreateUrlDto,
     @Req() req: Request,
   ): Promise<Url> {
-    const auth0Id = req.user['sub'];
+    const userId = req.user;
+    return await this.urlService.createShortUrl(createUrlDto, userId as string);
+  }
+
+  @Get('history')
+  async getLinkHistoryByUserId(
+    @Query() dto: GetLinkHistoryDto,
+  ): Promise<LinkHistory[]> {
+    return this.urlService.getLinkHistoryByUserId(dto);
+  }
+  // @Get('history')
+  // async getLinkHistoryByUserId() // @Query() getLinkHistoryDto: GetLinkHistoryDto,
+  // : Promise<any[]> {
+  //   // try {
+  //   return [200];
+  //   //   return await this.urlService.getLinkHistoryByUserId(getLinkHistoryDto);
+  //   // } catch (error) {
+  //   //   console.log(error);
+  //   //   throw new InternalServerErrorException('Failed to retrieve link history');
+  //   // }
+  // }
+
+  @Delete('history')
+  async clearLinkHistory(@Req() req: Request): Promise<void> {
+    const userId = req.user;
     try {
-      return await this.urlService.createShortUrl(createUrlDto, auth0Id);
+      await this.urlService.clearLinkHistory(userId as string);
     } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      throw new InternalServerErrorException('Failed to create short URL');
+      throw new InternalServerErrorException('Failed to clear link history');
     }
   }
 
@@ -50,27 +70,6 @@ export class UrlsController {
         throw error;
       }
       throw new InternalServerErrorException('Failed to retrieve short URL');
-    }
-  }
-
-  @Get('history')
-  async getLinkHistoryByUserId(
-    @Query() getLinkHistoryDto: GetLinkHistoryDto,
-  ): Promise<LinkHistory[]> {
-    try {
-      return await this.urlService.getLinkHistoryByUserId(getLinkHistoryDto);
-    } catch (error) {
-      throw new InternalServerErrorException('Failed to retrieve link history');
-    }
-  }
-
-  @Delete('history')
-  async clearLinkHistory(@Req() req: Request): Promise<void> {
-    const auth0Id = req.user['sub'];
-    try {
-      await this.urlService.clearLinkHistory(auth0Id);
-    } catch (error) {
-      throw new InternalServerErrorException('Failed to clear link history');
     }
   }
 }
