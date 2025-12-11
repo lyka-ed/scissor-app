@@ -19,6 +19,8 @@ model User {
   firstName String
   lastName  String
   password  String
+  otp         String? 
+  isVerified  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }  
