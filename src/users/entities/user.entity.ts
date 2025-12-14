@@ -6,6 +6,7 @@ export class UserEntity {
   firstName: string;
   lastName: string;
   isVerified: boolean;
+  createdAt: Date;
 
   constructor(user: User) {
     this.id = user.id;
@@ -13,5 +14,6 @@ export class UserEntity {
     this.firstName = user.firstName;
     this.lastName = user.lastName;
     this.isVerified = user.isVerified;
+    this.createdAt = user.createdAt;
   }
 }
