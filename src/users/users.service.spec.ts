@@ -34,6 +34,4 @@ describe('UsersService', () => {
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
-
-  // Add more tests here, e.g., 'should create a user'
 });
