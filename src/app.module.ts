@@ -6,12 +6,14 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
-import { PrismaModule } from '../prisma/prisma.module';
+import { PrismaModule } from './prisma/prisma.module';
+import { LinksModule } from './links/links.module';
 
 @Module({
   imports: [
     PrismaModule,
     UsersModule,
+    LinksModule,
     CacheModule.register({
       isGlobal: true,
       ttl: 5 * 60 * 1000,
