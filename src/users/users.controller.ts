@@ -12,6 +12,7 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { LoginUserDto } from './dto/login-user.dto';
+import { ResendOtpDto } from './dto/resend-otp-dto';
 import { GetUser } from '../utils/decorators/get-user.decorator';
 
 @ApiTags('auth')
@@ -23,6 +24,13 @@ export class UsersController {
   @ApiBody({ type: CreateUserDto })
   async signUp(@Body() dto: CreateUserDto) {
     return this.usersService.signUp(dto);
+  }
+
+  @Post('resend-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiBody({ type: ResendOtpDto })
+  async resendOtp(@Body() dto: ResendOtpDto) {
+    return this.usersService.resendOtp(dto.email);
   }
 
   @Post('verify')
@@ -54,4 +62,6 @@ export class UsersController {
   async refresh(@GetUser() user: any) {
     return this.usersService.refreshTokens(user.sub, user.refreshToken);
   }
+
+  ResendOtpDto;
 }
