@@ -62,6 +62,4 @@ export class UsersController {
   async refresh(@GetUser() user: any) {
     return this.usersService.refreshTokens(user.sub, user.refreshToken);
   }
-
-  ResendOtpDto;
 }
