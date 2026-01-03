@@ -5,12 +5,26 @@ import * as nodemailer from 'nodemailer';
 export class EmailService {
   private transporter;
 
+  // constructor() {
+  //   this.transporter = nodemailer.createTransport({
+  //     service: 'gmail',
+  //     auth: {
+  //       user: process.env.EMAIL_USER,
+  //       pass: process.env.EMAIL_PASS,
+  //     },
+  //   });
+  // }
   constructor() {
     this.transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
+      },
+      tls: {
+        ciphers: 'SSLv3',
       },
     });
   }
