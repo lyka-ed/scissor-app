@@ -2,6 +2,8 @@ import {
   Injectable,
   UnauthorizedException,
   ForbiddenException,
+  BadRequestException,
+  NotFoundException,
   Inject,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -110,6 +112,22 @@ export class UsersService {
     await updateRefreshTokenHash(this.prisma, user.id, tokens.refreshToken);
 
     return tokens;
+  }
+
+  async resendOtp(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) throw new NotFoundException('User not found');
+    if (user.isVerified) throw new BadRequestException('User already verified');
+
+    const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    await this.prisma.user.update({
+      where: { email },
+      data: { otp: newOtp },
+    });
+
+    await this.email.sendOtp(user.email, user.firstName, newOtp);
+    return { message: 'New OTP sent to email.' };
   }
 
   // LOGOUT
