@@ -11,11 +11,11 @@ export const CreateLinkSchema = z.object({
   alias: z
     .string()
     .trim()
-    .min(3, 'Alias must be at least 3 characters')
-    .max(20, 'Alias is too long')
+    .min(3, 'Custom URL must be at least 3 characters')
+    .max(20, 'Custom URL is too long')
     .regex(
       /^[a-zA-Z0-9_-]+$/,
-      'Alias can only contain letters, numbers, and hyphens',
+      'Custom URL can only contain letters, numbers, and hyphens',
     )
     .optional(),
 });
