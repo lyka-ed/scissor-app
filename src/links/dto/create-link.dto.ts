@@ -18,6 +18,8 @@ export const CreateLinkSchema = z.object({
       'Custom URL can only contain letters, numbers, and hyphens',
     )
     .optional(),
+
+  generateQr: z.boolean().optional().default(false),
 });
 
 export class CreateLinkDto extends createZodDto(CreateLinkSchema) {}
