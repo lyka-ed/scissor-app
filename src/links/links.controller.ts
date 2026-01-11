@@ -1,19 +1,19 @@
 import {
-  Controller,
-  Post,
-  Get,
   Body,
+  Controller,
+  Get,
+  HttpStatus,
   Param,
+  Post,
+  Req,
   Res,
   UseGuards,
-  HttpStatus,
-  Req,
 } from '@nestjs/common';
-import type { Response, Request } from 'express';
-import { ApiTags, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
-import { LinksService } from './links.service';
+import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
+import type { Request, Response } from 'express';
 import { CreateLinkDto } from './dto/create-link.dto';
+import { LinksService } from './links.service';
 import { GetUser } from '../utils/decorators/get-user.decorator';
 
 @ApiTags('Links')
@@ -21,7 +21,6 @@ import { GetUser } from '../utils/decorators/get-user.decorator';
 export class LinksController {
   constructor(private readonly linksService: LinksService) {}
 
-  // SHORTEN LINK
   @Post('shorten')
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
@@ -30,7 +29,6 @@ export class LinksController {
     return this.linksService.shorten(userId, dto);
   }
 
-  // LINK HISTORY
   @Get('link-history')
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
@@ -38,17 +36,17 @@ export class LinksController {
     return this.linksService.getUserLinks(userId);
   }
 
-  // REDIRECT (Public)
   @Get(':code')
   async redirect(
     @Param('code') code: string,
     @Res() res: Response,
     @Req() req: Request,
   ) {
-    const ip = req.ip;
+    const ip = req.ip || req.socket.remoteAddress;
     const userAgent = req.get('User-Agent');
 
     const url = await this.linksService.getOriginalUrl(code, ip, userAgent);
+
     return res.redirect(HttpStatus.FOUND, url);
   }
 }
