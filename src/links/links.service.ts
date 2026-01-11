@@ -1,16 +1,17 @@
 import {
-  Injectable,
   BadRequestException,
-  NotFoundException,
   Inject,
+  Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateLinkDto } from './dto/create-link.dto';
+import { LinkEntity } from './entities/link.entity';
 import {
-  generateRandomCode,
   generateQrCode,
+  generateRandomCode,
 } from '../utils/helper/link.helper';
 
 @Injectable()
@@ -20,23 +21,20 @@ export class LinksService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
-  // --- 1. CREATE LINK (Shorten + QR) ---
-  async shorten(userId: number, dto: CreateLinkDto) {
+  async shorten(userId: number, dto: CreateLinkDto): Promise<LinkEntity> {
     let shortCode = dto.alias;
 
-    // A. Handle Alias / Random Generation
     if (shortCode) {
-      // FIX: Changed .Link to .link
       const exists = await this.prisma.link.findUnique({
         where: { shortUrl: shortCode },
       });
-      if (exists) throw new BadRequestException('This alias is already taken.');
+      if (exists) {
+        throw new BadRequestException('This alias is already taken.');
+      }
     } else {
       let isUnique = false;
       while (!isUnique) {
         shortCode = generateRandomCode();
-
-        // FIX: Ensure this is .link (lowercase)
         const exists = await this.prisma.link.findUnique({
           where: { shortUrl: shortCode },
         });
@@ -44,7 +42,6 @@ export class LinksService {
       }
     }
 
-    // B. Save to DB
     const link = await this.prisma.link.create({
       data: {
         originalUrl: dto.originalUrl,
@@ -53,51 +50,50 @@ export class LinksService {
       },
     });
 
-    // C. Generate QR Code
-    const domain = process.env.DOMAIN || 'http://localhost:3000';
-    const fullUrl = `${domain}/${link.shortUrl}`;
-    const qrCode = await generateQrCode(fullUrl);
+    let qrCodeData: string | undefined;
+    if (dto.generateQr) {
+      const baseUrl = process.env.APP_URL || 'http://localhost:3000';
+      qrCodeData = await generateQrCode(`${baseUrl}/${link.shortUrl}`);
+    }
 
-    return {
-      ...link,
-      shortUrl: fullUrl,
-      qrCode: qrCode,
-    };
+    return new LinkEntity(link, qrCodeData);
   }
 
-  // --- 2. GET ORIGINAL URL (Redirect) ---
-  async getOriginalUrl(code: string, ip?: string, userAgent?: string) {
-    // A. Check Cache
+  async getOriginalUrl(
+    code: string,
+    ip?: string,
+    userAgent?: string,
+  ): Promise<string> {
     const cachedUrl = await this.cacheManager.get<string>(`link_${code}`);
     if (cachedUrl) {
       this.trackClick(code, ip, userAgent);
       return cachedUrl;
     }
 
-    // B. Check DB
     const link = await this.prisma.link.findUnique({
       where: { shortUrl: code },
     });
-    if (!link) throw new NotFoundException('Link not found or expired');
 
-    // C. Cache it for 1 hour
+    if (!link) {
+      throw new NotFoundException('Link not found or expired');
+    }
+
     await this.cacheManager.set(`link_${code}`, link.originalUrl, 3600 * 1000);
-
-    // D. Track Analytics
-    this.trackClick(code, ip, userAgent, link.id);
+    await this.trackClick(code, ip, userAgent, link.id);
 
     return link.originalUrl;
   }
 
-  // --- 3. LINK HISTORY ---
   async getUserLinks(userId: number) {
-    return this.prisma.link.findMany({
+    const links = await this.prisma.link.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
+      include: { _count: { select: { analytics: true } } },
     });
+
+    return links.map((link) => new LinkEntity(link));
   }
 
-  // --- 4. ANALYTICS HELPER ---
   private async trackClick(
     code: string,
     ip?: string,
@@ -107,6 +103,7 @@ export class LinksService {
     if (!linkId) {
       const link = await this.prisma.link.findUnique({
         where: { shortUrl: code },
+        select: { id: true },
       });
       if (!link) return;
       linkId = link.id;
@@ -117,7 +114,7 @@ export class LinksService {
       data: { clicks: { increment: 1 } },
     });
 
-    // Ensure 'analytics' model exists in schema.prisma and is lowercase here
+    // Keep record Detailed Analytics
     await this.prisma.analytics.create({
       data: {
         linkId: linkId,
