@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  ConflictException,
   NotFoundException,
 } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -22,30 +23,26 @@ export class LinksService {
   ) {}
 
   async shorten(userId: number, dto: CreateLinkDto): Promise<LinkEntity> {
-    let shortCode = dto.alias;
+    let finalShortCode: string;
 
-    if (shortCode) {
+    if (dto.customName) {
       const exists = await this.prisma.link.findUnique({
-        where: { shortUrl: shortCode },
+        where: { shortUrl: dto.customName },
       });
       if (exists) {
-        throw new BadRequestException('This alias is already taken.');
+        throw new ConflictException(
+          `The name '${dto.customName}' is already taken.`,
+        );
       }
+      finalShortCode = dto.customName;
     } else {
-      let isUnique = false;
-      while (!isUnique) {
-        shortCode = generateRandomCode();
-        const exists = await this.prisma.link.findUnique({
-          where: { shortUrl: shortCode },
-        });
-        if (!exists) isUnique = true;
-      }
+      finalShortCode = await this.generateUniqueCode();
     }
 
     const link = await this.prisma.link.create({
       data: {
         originalUrl: dto.originalUrl,
-        shortUrl: shortCode!,
+        shortUrl: finalShortCode,
         userId,
       },
     });
@@ -94,6 +91,31 @@ export class LinksService {
     return links.map((link) => new LinkEntity(link));
   }
 
+  private async generateUniqueCode(): Promise<string> {
+    let isUnique = false;
+    let code = '';
+
+    let attempts = 0;
+
+    while (!isUnique && attempts < 10) {
+      code = generateRandomCode();
+      const exists = await this.prisma.link.findUnique({
+        where: { shortUrl: code },
+      });
+      if (!exists) {
+        isUnique = true;
+      }
+      attempts++;
+    }
+
+    if (!isUnique)
+      throw new ConflictException(
+        'Could not generate unique code, please try again',
+      );
+
+    return code;
+  }
+
   private async trackClick(
     code: string,
     ip?: string,
@@ -114,7 +136,6 @@ export class LinksService {
       data: { clicks: { increment: 1 } },
     });
 
-    // Keep record Detailed Analytics
     await this.prisma.analytics.create({
       data: {
         linkId: linkId,

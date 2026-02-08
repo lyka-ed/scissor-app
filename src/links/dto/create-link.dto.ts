@@ -5,17 +5,16 @@ export const CreateLinkSchema = z.object({
   originalUrl: z
     .string()
     .trim()
-    .min(1, 'URL is required')
-    .url({ message: 'Must be a valid URL' }),
+    .url({ message: 'Please provide a valid URL (e.g. https://google.com)' }),
 
-  alias: z
+  customName: z
     .string()
     .trim()
-    .min(3, 'Custom URL must be at least 3 characters')
-    .max(20, 'Custom URL is too long')
+    .min(3, 'Custom name must be at least 3 characters')
+    .max(20, 'Custom name is too long')
     .regex(
       /^[a-zA-Z0-9_-]+$/,
-      'Custom URL can only contain letters, numbers, and hyphens',
+      'Name can only contain letters, numbers, and hyphens',
     )
     .optional(),
 
