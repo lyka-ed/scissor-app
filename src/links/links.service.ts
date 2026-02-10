@@ -135,7 +135,6 @@ export class LinksService {
       where: { id: linkId },
       data: { clicks: { increment: 1 } },
     });
-
     await this.prisma.analytics.create({
       data: {
         linkId: linkId,
